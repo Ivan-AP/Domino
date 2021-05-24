@@ -1,0 +1,153 @@
+import random
+import operator
+
+full_set = []
+for first in range(7):
+    for second in range(7):
+        full_set.append([first, second])
+        if first != second:
+            if [second, first] in full_set:
+                full_set.remove([second, first])
+shuffle_set = full_set
+
+
+def shuffle(shuffle_set):
+    computer = []
+    player = []
+    computer_double = []
+    player_double = []
+    for i in range(7):
+        computer_piece = shuffle_set.pop(random.randint(0, len(shuffle_set) - 1))
+        if computer_piece[0] == computer_piece[1]:
+            computer_double.append(computer_piece)
+            computer_double.sort()
+        computer.append(computer_piece)
+        player_piece = shuffle_set.pop(random.randint(0, len(shuffle_set) - 1))
+        if player_piece[0] == player_piece[1]:
+            player_double.append(player_piece)
+            player_double.sort()
+        player.append(player_piece)
+    stock = shuffle_set
+    if len(computer_double) == 0 and len(player_double) == 0:
+        shuffle(full_set)
+    return computer, player, stock, computer_double, player_double
+
+
+computer, player, stock, computer_double, player_double = shuffle(full_set)
+domino_snake = []
+if len(computer_double) > 0:
+    computer_double = computer_double.pop()
+if len(player_double) > 0:
+    player_double = player_double.pop()
+if computer_double > player_double:
+    domino_snake.append(computer.pop(computer.index(computer_double)))
+    move = "player"
+else:
+    domino_snake.append(player.pop(player.index(player_double)))
+    move = "computer"
+
+
+def distribution_output():
+    print(70 * "=")
+    print(f"Stock size: {len(stock)}")
+    print(f"Computer pieces: {len(computer)}")
+    if len(domino_snake) < 6:
+        print("\n", *domino_snake, "\n", sep="")
+    else:
+        print("\n", *domino_snake[0:3], "...", *domino_snake[(len(domino_snake) - 3):], "\n", sep="")
+    print("Your pieces:")
+    for piece_num in range(len(player)):
+        print(f"{piece_num + 1}:{player[piece_num]}")
+    print()
+
+
+def move_check():
+    while True:
+        try:
+            play_move = int(input())
+            if abs(play_move) <= len(player):
+                return play_move
+            else:
+                print("Invalid input. Please try again.")
+        except ValueError:
+            print("Invalid input. Please try again.")
+
+
+def player_move():
+    checked_move = move_check()
+    if checked_move < 0:
+        if domino_snake[0][0] in player[abs(checked_move) - 1]:
+            if player[abs(checked_move) - 1][1] == domino_snake[0][0]:
+                return domino_snake.insert(0, player.pop(abs(checked_move) - 1))
+            else:
+                return domino_snake.insert(0, player.pop(abs(checked_move) - 1)[::-1])
+        else:
+            print("Illegal move. Please try again.")
+            player_move()
+    elif checked_move > 0:
+        if domino_snake[len(domino_snake) - 1][1] in player[checked_move - 1]:
+            if player[checked_move - 1][0] == domino_snake[len(domino_snake) - 1][1]:
+                return domino_snake.append(player.pop(checked_move - 1))
+            else:
+                return domino_snake.append(player.pop(checked_move - 1)[::-1])
+        else:
+            print("Illegal move. Please try again.")
+            player_move()
+    else:
+        move = "computer"
+        if len(stock) > 0:
+            return player.append(stock.pop(random.randint(0, len(stock) - 1))), move
+        else:
+            return move
+
+
+def computer_move():
+    print("Status: Computer is about to make a move.Press Enter to continue...")
+    input()
+    nums = [num for piece in (computer + domino_snake) for num in piece]
+    freq_nums = {}
+    for i in range(7):
+        freq_nums[i] = nums.count(i)
+    piece_rate = {}
+    for piece in computer:
+        piece_rate[tuple(piece)] = freq_nums[piece[0]] + freq_nums[piece[1]]
+    descend_piece_rate = sorted(piece_rate.items(), key=operator.itemgetter(1), reverse=True)
+    for piece in descend_piece_rate:
+        if domino_snake[0][0] in piece[0]:
+            if domino_snake[0][0] == piece[0][1]:
+                return domino_snake.insert(0, computer.pop(computer.index(list(piece[0]))))
+            else:
+                return domino_snake.insert(0, computer.pop(computer.index(list(piece[0])))[::-1])
+        elif domino_snake[len(domino_snake) - 1][1] in piece[0]:
+            if domino_snake[len(domino_snake) - 1][1] == piece[0][0]:
+                return domino_snake.append(computer.pop(computer.index(list(piece[0]))))
+            else:
+                return domino_snake.append(computer.pop(computer.index(list(piece[0])))[::-1])
+        else:
+            continue
+    move = "player"
+    if len(stock) > 0:
+        return computer.append(stock.pop(random.randint(0, len(stock) - 1))), move, stock
+    else:
+        return move
+
+
+while len(player) > 0 and len(computer) > 0 and (domino_snake[0][0] != domino_snake[len(domino_snake) - 1][1] or
+                                                [num for piece in domino_snake for num in piece].
+                                                count(domino_snake[0][0]) < 8):
+    distribution_output()
+    if move == "player":
+        print("Status: It's your turn to make a move.\nEnter your command.")
+        player_move()
+        move = "computer"
+    else:
+        computer_move()
+        move = "player"
+if len(player) == 0:
+    distribution_output()
+    print("Status: The game is over. You won!")
+elif len(computer) == 0:
+    distribution_output()
+    print("Status: The game is over. The computer won!")
+else:
+    print("Status: The game is over. It's a draw!")
